@@ -1,18 +1,20 @@
+from datetime import datetime
+
 def integ(value):
     value = float(value)
     if value.is_integer():
-        return int(value) 
+        return int(value)
     else:
-        return round(value, 2) 
+        return round(value, 2)
 
 def valid(day, month, year, hour, minute, second):
     if month < 1 or month > 12:
         return False
 
     monthdays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):  
-        monthdays[1] = 29  
-            
+    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+        monthdays[1] = 29
+
     if not (1 <= day <= monthdays[month - 1]):
         return False
 
@@ -25,111 +27,76 @@ def valid(day, month, year, hour, minute, second):
 
     return True
 
-def masher(n, m):
-    y, mo, d, h, mi, s = 0, 0, 0, 0, 0, 0
-    year = 1
-    month = 1
-    day = 1
-
-    while True:
-        days_in_year = 366 if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0) else 365
-        if n >= days_in_year * 86400:
-            y += 1
-            n -= days_in_year * 86400
-            year += 1
-        else:
-            break
-
-    monthdays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
-        monthdays[1] = 29
-
-    month = 1
-    while month <= 12:
-        seconds_in_month = monthdays[month - 1] * 86400
-        if n >= seconds_in_month:
-            mo += 1
-            n -= seconds_in_month
-            month += 1
-        else:
-            break
-
-    d = n // 86400
-    n %= 86400
-
-    h = n // 3600
-    n %= 3600
-
-    mi = n // 60
-    s = n % 60
-
-    if m == "Years":
-        if y != 0:
-            return f"{integ(y)} Year{'s' if y != 1 else ''}, "
-        else:
-            return ""
-    elif m == "Months":
-        if mo != 0:
-            return f"{integ(mo)} Month{'s' if mo != 1 else ''}, "
-        else:
-            return ""
-    elif m == "Days":
-        if d != 0:
-            return f"{integ(d)} Day{'s' if d != 1 else ''}, "
-        else:
-            return ""
-    elif m == "Hours":
-        if h != 0:
-            return f"{integ(h)} Hour{'s' if h != 1 else ''}, "
-        else:
-            return ""
-    elif m == "Minutes":
-        if mi != 0:
-            return f"{integ(mi)} Minute{'s' if mi != 1 else ''}, "
-        else:
-            return ""
-    elif m == "Seconds":
-        if s != 0:
-            return f"{integ(s)} Second{'s' if s != 1 else ''} "
-        else:
-            return ""
-
 def seconder(day, month, year, hour, minute, second):
     monthdays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0): 
-        monthdays[1] = 29 
 
-    total_days = (year - 1) * 365 + (year - 1) // 4  
+    leap_years = (year - 1) // 4 - (year - 1) // 100 + (year - 1) // 400
+    days = (year - 1) * 365 + leap_years
+
     for i in range(month - 1):
-        total_days += monthdays[i]
+        days += monthdays[i]
 
-    total_days += day - 1
+    if month > 2 and ((year % 4 == 0 and year % 100 != 0) or (year % 400 == 0)):
+        days += 1
 
-    total_seconds = total_days * 86400 + hour * 3600 + minute * 60 + second
+    days += day - 1
+
+    total_seconds = days * 86400 + hour * 3600 + minute * 60 + second
     return total_seconds
 
-def difference(day1, month1, year1, hour1, minute1, second1, day2, month2, year2, hour2, minute2, second2):
-    time1_seconds = seconder(day1, month1, year1, hour1, minute1, second1)
-    time2_seconds = seconder(day2, month2, year2, hour2, minute2, second2)
+def calendar_difference(d1, m1, y1, h1, min1, s1, d2, m2, y2, h2, min2, s2):
+    if (y2, m2, d2, h2, min2, s2) < (y1, m1, d1, h1, min1, s1):
+        d1, m1, y1, h1, min1, s1, d2, m2, y2, h2, min2, s2 = d2, m2, y2, h2, min2, s2, d1, m1, y1, h1, min1, s1
 
-    diff_seconds = abs(time2_seconds - time1_seconds)
+    def get_monthdays(month, year):
+        if month == 2:
+            return 29 if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0) else 28
+        return [31,28,31,30,31,30,31,31,30,31,30,31][month - 1]
 
-    diff_minutes = diff_seconds / 60
-    diff_hours = diff_seconds / 3600
-    diff_days = diff_seconds // 86400
-    diff_months = diff_days / 30.436875
-    diff_years = diff_days / 365.2425 
+    sec = s2 - s1
+    if sec < 0:
+        sec += 60
+        min2 -= 1
 
-    return diff_seconds, diff_minutes, diff_hours, diff_days, diff_months, diff_years
+    minute = min2 - min1
+    if minute < 0:
+        minute += 60
+        h2 -= 1
+
+    hour = h2 - h1
+    if hour < 0:
+        hour += 24
+        d2 -= 1
+
+    day = d2 - d1
+    if day < 0:
+        m2 -= 1
+        if m2 == 0:
+            m2 = 12
+            y2 -= 1
+        day += get_monthdays(m2, y2)
+
+    month = m2 - m1
+    if month < 0:
+        month += 12
+        y2 -= 1
+
+    year = y2 - y1
+
+    return year, month, day, hour, minute, sec
 
 def inputchecker(prompt):
     while True:
         try:
-            userinput = input(prompt)
-            parts = userinput.strip().split()
+            userinput = input(prompt).strip()
 
+            if userinput.lower() == "now":
+                now = datetime.now()
+                return now.day, now.month, now.year, now.hour, now.minute, now.second
+
+            parts = userinput.split()
             if len(parts) not in [6, 7]:
-                raise ValueError("You must provide 6 values (or 7 with AM/PM).")
+                raise ValueError("You must provide 6 values (or 7 with AM/PM), or 'now'.")
 
             values = list(map(integ, parts[:6]))
             day, month, year, hour, minute, second = values
@@ -146,18 +113,26 @@ def inputchecker(prompt):
             else:
                 print("Invalid date or time values. Please check and try again.")
         except ValueError:
-            print("Invalid input. Please enter day, month, year, hour, minute, second, and optional AM/PM.")
+            print("Invalid input. Please enter day, month, year, hour, minute, second, and optional AM/PM, or type 'now'.")
 
 day1, month1, year1, hour1, minute1, second1 = inputchecker("Enter the first time (day month year hour minute second): ")
-
 day2, month2, year2, hour2, minute2, second2 = inputchecker("Enter the second time (day month year hour minute second): ")
 
-seconds, minutes, hours, days, months, years = difference(day1, month1, year1, hour1, minute1, second1, day2, month2, year2, hour2, minute2, second2)
+seconds = abs(seconder(day2, month2, year2, hour2, minute2, second2) -
+              seconder(day1, month1, year1, hour1, minute1, second1))
 
-print(f"Total Seconds: {integ(seconds)}")
-print(f"Total Minutes: {integ(minutes)}")
-print(f"Total Hours: {integ(hours)}")
-print(f"Total Days: {integ(days)}")
-print(f"Total Months: {integ(months)}")
-print(f"Total Years: {integ(years)}")
-print(f"\n{masher(seconds, 'Years')}{masher(seconds, 'Months')}{masher(seconds, 'Days')}{masher(seconds, 'Hours')}{masher(seconds, 'Minutes')}{masher(seconds, 'Seconds')}")
+print(f"\nTotal Seconds: {integ(seconds)}")
+print(f"Total Minutes: {integ(seconds / 60)}")
+print(f"Total Hours: {integ(seconds / 3600)}")
+print(f"Total Days: {integ(seconds // 86400)}")
+print(f"Total Months: {round((seconds // 86400) / 30.436875, 2)}")
+print(f"Total Years: {round((seconds // 86400) / 365.2425, 2)}")
+
+y, mo, d, h, mi, s = calendar_difference(day1, month1, year1, hour1, minute1, second1,
+                                        day2, month2, year2, hour2, minute2, second2)
+
+print("\n" + ", ".join(
+    f"{v} {label}{'s' if v != 1 else ''}"
+    for v, label in zip([y, mo, d, h, mi, s], ["Year", "Month", "Day", "Hour", "Minute", "Second"])
+    if v
+))
